@@ -1,0 +1,5 @@
+{
+  "savedHealth": 0,
+  "savedFood": 0,
+  "savedTime": 1739651024846
+}

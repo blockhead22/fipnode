@@ -1,0 +1,14 @@
+{
+  "health": 100,
+  "food": 96.25000000000009,
+  "isReviving": false,
+  "reviveProgress": 0,
+  "reviveTimeRemaining": "60:00",
+  "breathOffset": 1,
+  "breathDirection": -1,
+  "lastFedTime": 1739664522942,
+  "lastHealthCheck": 1739660773228,
+  "deathCount": 0,
+  "dayStreak": 0,
+  "lastDeathTime": null
+}

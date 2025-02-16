@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=320, height=240, initial-scale=1.0">
+    <title>FIP Display</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        /* 2-Bit Monochrome Style */
+        body {
+            font-family: 'Press Start 2P', cursive;
+            color: white;
+            text-shadow: 2px 2px 0px black;
+            background-color: rgb(77 87 63 / var(--tw-bg-opacity, 1));
+        }
+
+        /* Pixel Borders */
+        .pixel-border {
+            image-rendering: pixelated;
+            border: 4px solid white;
+            box-shadow: 2px 2px 0px black;
+        }
+
+        /* Minimalist Bars */
+        .pixel-bar {
+            height: 12px;
+            background: black;
+            border: 2px solid white;
+            padding: 1px;
+        }
+
+        .pixel-bar-fill {
+            height: 100%;
+            transition: width 0.3s linear;
+        }
+
+        .health-bar-fill { background: red; }
+        .food-bar-fill { background: green; }
+
+        /* Character */
+        .character {
+            image-rendering: pixelated;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        /* Death Screen */
+        .red-flash {
+            background: rgba(255, 0, 0, 0.8);
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            z-index: 10;
+            transition: opacity 0.2s;
+        }
+
+        /* WASTED */
+        .wasted {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: red;
+            opacity: 0;
+            z-index: 20;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        /* Retro Flicker Effect */
+        @keyframes flicker {
+            0% { opacity: 1; }
+            50% { opacity: 0.9; }
+            100% { opacity: 1; }
+        }
+
+        .flicker {
+            animation: flicker 0.1s infinite alternate;
+        }
+
+    </style>
+</head>
+<body class="w-[320px] h-[240px] flex items-center justify-center overflow-hidden">
+    <div class="absolute flex flex-row justify-between z-10 top-5 px-5 w-[320px] bg-green">
+        <p id="death-count" class="text-[10px] text-white">Deaths: <span id="death-value">10</span></p>
+        <p id="streak-count" class="text-[10px] text-white">Streak: <span id="streak-value">0</span></p>
+    </div>
+    <div class="relative w-full h-full flex flex-col items-center justify-center pixel-border">
+
+        <!-- Red Flash for Death -->
+        <div id="red-flash" class="red-flash"></div>
+
+        <!-- WASTED Screen -->
+        <div id="wasted-text" class="wasted">
+            <p class="text-4xl">WASTED</p>
+            <p id="revive-text" class="text-lg text-white mt-2">
+                Reviving in: <span id="revive-count">00:00</span>
+            </p>
+        </div>
+
+        <!-- Character -->
+        <div id="character-container" class="absolute top-10 transform flex justify-center">
+            <img id="character-img" class="h-24 character" src="pfp.png"/>
+        </div>
+
+        <!-- Health Bar -->
+        <div class="absolute bottom-6 left-4 w-32">
+            <p class="text-xs text-white">HEALTH</p>
+            <div class="pixel-bar">
+                <div id="health-bar" class="pixel-bar-fill health-bar-fill" style="width: 100%;"></div>
+            </div>
+        </div>
+
+        <!-- Food Bar -->
+        <div class="absolute bottom-6 right-4 w-32">
+            <p class="text-xs text-white">FOOD</p>
+            <div class="pixel-bar">
+                <div id="food-bar" class="pixel-bar-fill food-bar-fill" style="width: 100%;"></div>
+            </div>
+        </div>
+    </div>
+
+<script>
+   async function fetchGameData() {
+        try {
+            const response = await fetch('/button-data');
+            if (!response.ok) throw new Error("Failed to fetch game data.");
+            
+            const data = await response.json();
+
+            // Breathing effect
+            document.getElementById('character-container').style.transform = `translateY(${data.breathOffset * 3}px)`;
+
+            // Update bars
+            document.getElementById('health-bar').style.width = `${data.health}%`;
+            document.getElementById('food-bar').style.width = `${data.food}%`;
+            // Add this to `fetchGameData()` in UI script:
+            document.getElementById('death-value').textContent = data.deathCount;
+            document.getElementById('streak-value').textContent = data.dayStreak;
+
+
+            // Elements
+            let wastedText = document.getElementById('wasted-text');
+            let redFlash = document.getElementById('red-flash');
+            let reviveCount = document.getElementById('revive-count');
+
+            if (data.health <= 0) {
+                // Dead state
+                wastedText.style.opacity = "1";
+                redFlash.style.opacity = "0.5";  
+                wastedText.classList.add("flicker");
+
+                // Convert revive time (MM:SS)
+                reviveCount.textContent = data.reviveTimeRemaining;
+
+            } else {
+                // Revived state
+                wastedText.style.opacity = "0";
+                redFlash.style.opacity = "0";  
+                wastedText.classList.remove("flicker");
+            }
+
+        } catch (error) {
+            console.error("Error fetching game data:", error);
+        }
+    }
+
+    // Refresh every 100ms for smooth animation
+    setInterval(fetchGameData, 100);
+</script>
+
+</body>
+</html>
