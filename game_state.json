@@ -4,7 +4,7 @@
   "isReviving": false,
   "reviveProgress": 0,
   "reviveTimeRemaining": "60:00",
-  "breathOffset": 1,
+  "breathOffset": 2,
   "breathDirection": -1,
   "lastFedTime": 1739664522942,
   "lastHealthCheck": 1739660773228,
