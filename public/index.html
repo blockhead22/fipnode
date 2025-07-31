@@ -16,11 +16,12 @@
             background-color: rgb(77 87 63 / var(--tw-bg-opacity, 1));
         }
 
-        /* Pixel Borders */
+        /* Pixel Borders - Controlled via JavaScript */
         .pixel-border {
             image-rendering: pixelated;
             border: 4px solid white;
             box-shadow: 2px 2px 0px black;
+            transition: border-color 0.2s ease-in-out; /* Smooth breathing effect */
         }
 
         /* Minimalist Bars */
@@ -86,11 +87,11 @@
     </style>
 </head>
 <body class="w-[320px] h-[240px] flex items-center justify-center overflow-hidden">
-    <div class="absolute flex flex-row justify-between z-10 top-5 px-5 w-[320px] bg-green">
+    <div class="absolute flex flex-row justify-between z-10 top-5 px-5 w-[320px]">
         <p id="death-count" class="text-[10px] text-white">Deaths: <span id="death-value">10</span></p>
         <p id="streak-count" class="text-[10px] text-white">Streak: <span id="streak-value">0</span></p>
     </div>
-    <div class="relative w-full h-full flex flex-col items-center justify-center pixel-border">
+    <div id="border-container" class="relative w-full h-full flex flex-col items-center justify-center pixel-border">
 
         <!-- Red Flash for Death -->
         <div id="red-flash" class="red-flash"></div>
@@ -105,7 +106,7 @@
 
         <!-- Character -->
         <div id="character-container" class="absolute top-10 transform flex justify-center">
-            <img id="character-img" class="h-24 character" src="pfp.png"/>
+            <img id="character-img" class="h-26 character" src="pfp.png"/>
         </div>
 
         <!-- Health Bar -->
@@ -125,54 +126,83 @@
         </div>
     </div>
 
-<script>
-   async function fetchGameData() {
-        try {
-            const response = await fetch('/button-data');
-            if (!response.ok) throw new Error("Failed to fetch game data.");
-            
-            const data = await response.json();
+    <script>
+            async function fetchGameData() {
+    try {
+        const response = await fetch('/button-data');
+        if (!response.ok) throw new Error("Failed to fetch game data.");
+        
+        const data = await response.json();
+        
+        // Choose a random movement type based on breath offset
+        let movementType = Math.abs(data.breathOffset) % 4; // 0,1,2,3 cycle
+        let bobbleAmount = data.breathOffset * 2;  // Standard bobble
+        let rotation = data.breathOffset * 1.5; // Tilt effect
+        let scaleAmount = 1 + (data.breathOffset * 0.005); // Subtle scale pulse
+        let translateX = 0;  // Default horizontal shift
 
-            // Breathing effect
-            document.getElementById('character-container').style.transform = `translateY(${data.breathOffset * 3}px)`;
-
-            // Update bars
-            document.getElementById('health-bar').style.width = `${data.health}%`;
-            document.getElementById('food-bar').style.width = `${data.food}%`;
-            // Add this to `fetchGameData()` in UI script:
-            document.getElementById('death-value').textContent = data.deathCount;
-            document.getElementById('streak-value').textContent = data.dayStreak;
-
-
-            // Elements
-            let wastedText = document.getElementById('wasted-text');
-            let redFlash = document.getElementById('red-flash');
-            let reviveCount = document.getElementById('revive-count');
-
-            if (data.health <= 0) {
-                // Dead state
-                wastedText.style.opacity = "1";
-                redFlash.style.opacity = "0.5";  
-                wastedText.classList.add("flicker");
-
-                // Convert revive time (MM:SS)
-                reviveCount.textContent = data.reviveTimeRemaining;
-
-            } else {
-                // Revived state
-                wastedText.style.opacity = "0";
-                redFlash.style.opacity = "0";  
-                wastedText.classList.remove("flicker");
-            }
-
-        } catch (error) {
-            console.error("Error fetching game data:", error);
+        switch (movementType) {
+            case 0: 
+                // **FLOAT**: Moves slightly up & down
+                translateX = Math.sin(data.breathOffset) * 3;
+                break;
+            case 1: 
+                // **TILT WIGGLE**: Tilts more aggressively
+                rotation = Math.sin(data.breathOffset * 1.8) * 6;
+                translateX = Math.cos(data.breathOffset * 1.2) * 2;
+                break;
+            case 2: 
+                // **EXPAND & SHRINK**: Pulse effect
+                scaleAmount = 1 + Math.sin(data.breathOffset * 2) * 0.01;
+                break;
+            case 3:
+                // **SIDE-STEP**: Moves left & right randomly
+                translateX = (data.breathOffset % 2 === 0) ? -2 : 2;
+                break;
         }
+
+        // Apply transformation
+        document.getElementById('character-container').style.transform = 
+            `translate(${translateX}px, ${bobbleAmount}px) rotate(${rotation}deg) scale(${scaleAmount})`;
+
+        // Sync Border Color with Movement
+        let borderColors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"];
+        let colorIndex = Math.abs(data.breathOffset) % borderColors.length;
+        document.getElementById('border-container').style.borderColor = borderColors[colorIndex];
+
+        // Update health and food bars
+        document.getElementById('health-bar').style.width = `${data.health}%`;
+        document.getElementById('food-bar').style.width = `${data.food}%`;
+
+        // Update Death & Streak Count
+        document.getElementById('death-value').textContent = data.deathCount;
+        document.getElementById('streak-value').textContent = data.dayStreak;
+
+        // Wasted screen logic
+        let wastedText = document.getElementById('wasted-text');
+        let redFlash = document.getElementById('red-flash');
+        let reviveCount = document.getElementById('revive-count');
+
+        if (data.health <= 0) {
+            wastedText.style.opacity = "1";
+            redFlash.style.opacity = "0.5";  
+            wastedText.classList.add("flicker");
+            reviveCount.textContent = data.reviveTimeRemaining;
+        } else {
+            wastedText.style.opacity = "0";
+            redFlash.style.opacity = "0";  
+            wastedText.classList.remove("flicker");
+        }
+
+    } catch (error) {
+        console.error("Error fetching game data:", error);
     }
+}
 
-    // Refresh every 100ms for smooth animation
-    setInterval(fetchGameData, 100);
-</script>
+// Refresh every 100ms for smooth animation
+setInterval(fetchGameData, 100);
 
+    </script>
+    
 </body>
 </html>
